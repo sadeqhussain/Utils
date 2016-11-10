@@ -9,21 +9,22 @@
 ## Tested on:   Debian 7, 8, Ubuntu 12, 14, 16 RHEL 7, CentOS 6, 7 servers in AWS, DigitalOcean
 ################################################################################################
 
+   
+JAVA_INSTALL_VERSION=8   # Change this to a lower version (say 7.0) when necessary
+JAVA_DISTRO=Oracle       # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
 
-JAVA_INSTALL_VERSION=8 # "Change this to a lower version (say 7.0) when necessary"
 LINUX_DISTRO=""
-IS_JAVA_INSTALLED=False
+INSTALL_COMMAND=""
 
-function check_installer_version()
+
+function check()
 {
-  if [ "$JAVA_INSTALL_VERSION" == 8 ]; then
-    JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-linux-x64.tar.gz"
-  elif [ "$JAVA_INSTALL_VERSION" == 7 ]; then
-    JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/7u79-b15-demos/jdk-7u79-linux-x64-demos.tar.gz"
-  else
+  if [ "$JAVA_INSTALL_VERSION" -lt 7 ]; then
     exit
   fi
-  /bin/echo $JAVA_INSTALL_VERSION
+  if [ "$JAVA_DISTRO" != "Oracle" ] && [ "$JAVA_DISTRO" != "Open" ]; then
+    exit
+  fi
 }
 
 function check_linux_distro()
@@ -37,22 +38,56 @@ function check_linux_distro()
   else
     exit
   fi
-  /bin/echo $LINUX_DISTRO
 }
 
-#function check_if_java_installed()
-#{
-  
-#}
+function find_installer()
+{
+  if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
+    case $JAVA_DISTRO in
+	  "Open")
+        INSTALL_COMMAND="/usr/bin/apt-get install -y openjdk-"$JAVA_INSTALL_VERSION"-jdk"
+        ;;		
+      "Oracle")
+        INSTALL_COMMAND="Oracle JDK install command for Debian/Ubuntu"
+		;;
+         "x")
+        exit
+        ;;		
+    esac		
+  elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
+    case $JAVA_DISTRO in
+	  "Open")
+        INSTALL_COMMAND="/usr/bin/ yum install java-1."$JAVA_INSTALL_VERSION".0-openjdk"
+        ;;		
+      "Oracle")
+	    INSTALL_COMMAND="Oracle JDK install command for Red Hat"
+		;;
+      "*")
+	    exit
+		;;
+    esac
+  fi
+  echo $INSTALL_COMMAND
+}
 
-## Check the version of JDK to be installed. It can be either 7 or 8
-check_installer_version
-
-## check for Linux distro and version
+check
 check_linux_distro
+find_installer
 
-## Check if Java exists. If it is, exit program
-#check_if_java_installed
+
+
+function check_installer_version()
+{
+  if [ "$JAVA_INSTALL_VERSION" == 8 ]; then
+    JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-linux-x64.tar.gz"
+  elif [ "$JAVA_INSTALL_VERSION" == 7 ]; then
+    JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/7u79-b15-demos/jdk-7u79-linux-x64-demos.tar.gz"
+  else
+    exit
+  fi
+  /bin/echo $JAVA_INSTALL_VERSION
+}
+
 
 
 ## Still need to work on the rest of the script
