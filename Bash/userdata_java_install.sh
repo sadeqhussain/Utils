@@ -44,27 +44,27 @@ function find_installer()
 {
   if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
     case $JAVA_DISTRO in
-	  "Open")
+      "Open")
         INSTALL_COMMAND="/usr/bin/apt-get install -y openjdk-"$JAVA_INSTALL_VERSION"-jdk"
         ;;		
       "Oracle")
         INSTALL_COMMAND="Oracle JDK install command for Debian/Ubuntu"
 		;;
-         "x")
+      "x")
         exit
         ;;		
     esac		
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     case $JAVA_DISTRO in
-	  "Open")
+      "Open")
         INSTALL_COMMAND="/usr/bin/ yum install java-1."$JAVA_INSTALL_VERSION".0-openjdk"
         ;;		
       "Oracle")
-	    INSTALL_COMMAND="Oracle JDK install command for Red Hat"
+        INSTALL_COMMAND="Oracle JDK install command for Red Hat"
 		;;
       "*")
-	    exit
-		;;
+        exit
+        ;;
     esac
   fi
   echo $INSTALL_COMMAND
