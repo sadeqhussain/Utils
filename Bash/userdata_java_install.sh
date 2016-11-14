@@ -10,9 +10,8 @@
 ## Tested on:   Debian 7, 8, Ubuntu 12, 14, 16 RHEL 7, CentOS 6, 7 servers in AWS, DigitalOcean
 ####################################################################################################
 
-   
-JAVA_INSTALL_VERSION=8 # Change this to a lower version (say 7.0) when necessary
-JAVA_DISTRO=Open       # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
+JAVA_INSTALL_VERSION=7 # Change this to a lower version (say 7.0) when necessary
+JAVA_DISTRO=Oracle       # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
 
 LINUX_DISTRO=""
 INSTALL_COMMAND=""
@@ -40,13 +39,14 @@ check_java_distro_version() {
 }
 
 install_wget() {
-if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
-  if  ! /usr/bin/dpkg -l | grep wget; then
-    /usr/sbin/apt-get install -y wget
-  fi
-elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
-  if  ! /usr/bin/rpm -qa | grep wget; then
-    /usr/sbin/yum install -y wget
+  if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
+    if  ! /bin/dpkg -l | grep wget; then
+      /usr/sbin/apt-get install -y wget
+    fi
+  elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
+    if  ! /bin/rpm -qa | grep wget; then
+      /usr/sbin/yum install -y wget
+    fi
   fi
 }
 
@@ -66,12 +66,10 @@ install_oracle_jdk() {
   install_wget
   get_oracle_jdk_installer_name
   /usr/bin/wget --no-check-certificate -c --header "Cookie: oraclelicense=accept-securebackup-cookie" $JAVA_INSTALLER_URL
-  /usr/bin/cp ./$JAVA_PACKAGE /tmp/
-  /usr/bin/cd /tmp/
-  /usr/bin/tar xvzf $JAVA_PACKAGE
-  /usr/bin/rm -f $JAVA_PACKAGE
-  JAVA_DIR_NAME=/usr/bin/ls -Al | /usr/bin/grep "jdk"
-  /usr/bin/mv $JAVA_DIR_NAME/ /usr/local/
+  /bin/tar xvzf $JAVA_PACKAGE
+  /bin/rm -f $JAVA_PACKAGE
+  JAVA_DIR_NAME=eval "/bin/ls . | /bin/grep "jdk1.""
+  /bin/mv $JAVA_DIR_NAME/ /usr/local/
 }
 
 configure_oracle_jdk() {
@@ -79,8 +77,8 @@ configure_oracle_jdk() {
   /usr/sbin/alternatives --install /usr/bin/javac javac /usr/local/$JAVA_DIR_NAME/bin/javac 3
   /usr/sbin/alternatives --install /usr/bin/jar jar /usr/local$JAVA_DIR_NAME/bin/jar 4
 
-  /usr/bin/echo "export JAVA_HOME=/usr/local/"$JAVA_DIR_NAME >> /etc/environment
-  /usr/bin/echo "export PATH=$PATH:/usr/local/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
+  /bin/echo "export JAVA_HOME=/usr/local/"$JAVA_DIR_NAME >> /etc/environment
+  /bin/echo "export PATH=$PATH:/usr/local/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
 }
 
 ## To do: Have to cater for OpenJDK 8 not being available for Ubuntu 14.04 and less and being available from 14.10 and above.
@@ -113,7 +111,6 @@ install_configure_java() {
 check_linux_distro
 check_java_distro_version
 install_configure_java
-
 
 ## Testing 
 # Open JDK 7 => CentOS 6 passed
