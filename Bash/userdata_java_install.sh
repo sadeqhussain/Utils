@@ -108,13 +108,13 @@ install_open_jdk_redhat() {
 install_configure_java() {
   if [ "$JAVA_DISTRO" = "Oracle" ]; then
     install_oracle_jdk
-	configure_oracle_jdk
+    configure_oracle_jdk
   elif [ "$JAVA_DISTRO" = "Open" ]; then
     if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
       install_open_jdk_debian_ubuntu
-	elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
+    elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
       install_open_jdk_redhat
-	fi
+    fi
   fi
 }
 	
