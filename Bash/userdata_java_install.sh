@@ -4,13 +4,13 @@
 ## Script Name: userdata_java_install.sh
 ## Author:      Sadequl Hussain
 ## Copyright:   2016, Sadequl Hussain
-## Purpose:     Installs Java in a Linux system as part of a userdata operation. 
+## Purpose:     Installs Java in a Linux server as part of userdata provisioning. 
 ## Usage:       1. Copy and paste the script in the userdata section of a cloud based Linux server.
 ##              2. Change the Java distribution (Oracle or Open) and the version (7,8,...)
 ## Tested on:   Debian 7, 8, Ubuntu 12, 14, 16 RHEL 7, CentOS 6, 7 servers in AWS, DigitalOcean
 ####################################################################################################
 
-JAVA_INSTALL_VERSION=7 # Change this to a lower version (say 7.0) when necessary
+JAVA_INSTALL_VERSION=7   # Change this to a lower version (say 7.0) when necessary
 JAVA_DISTRO=Oracle       # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
 
 LINUX_DISTRO=""
@@ -40,12 +40,12 @@ check_java_distro_version() {
 
 install_wget() {
   if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
-    if  ! /bin/dpkg -l | grep wget; then
-      /usr/sbin/apt-get install -y wget
+    if  ! /usr/bin/dpkg -l | grep wget; then
+      /usr/bin/apt-get install -y wget
     fi
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     if  ! /bin/rpm -qa | grep wget; then
-      /usr/sbin/yum install -y wget
+      /usr/bin/yum install -y wget
     fi
   fi
 }
@@ -68,17 +68,27 @@ install_oracle_jdk() {
   /usr/bin/wget --no-check-certificate -c --header "Cookie: oraclelicense=accept-securebackup-cookie" $JAVA_INSTALLER_URL
   /bin/tar xvzf $JAVA_PACKAGE
   /bin/rm -f $JAVA_PACKAGE
-  JAVA_DIR_NAME=eval "/bin/ls . | /bin/grep "jdk1.""
+  JAVA_DIR_NAME=$(/bin/ls . | /bin/grep jdk1.)
   /bin/mv $JAVA_DIR_NAME/ /usr/local/
 }
 
 configure_oracle_jdk() {
-  /usr/sbin/alternatives --install /usr/bin/java java /usr/local/$JAVA_DIR_NAME/bin/java 2
-  /usr/sbin/alternatives --install /usr/bin/javac javac /usr/local/$JAVA_DIR_NAME/bin/javac 3
-  /usr/sbin/alternatives --install /usr/bin/jar jar /usr/local$JAVA_DIR_NAME/bin/jar 4
+  if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
+    ALTERNATIVES_PATH="/usr/bin/update-alternatives"
+  elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
+    ALTERNATIVES_PATH="/usr/sbin/alternatives"
+  fi
+   
+  $ALTERNATIVES_PATH --install /usr/bin/java java /usr/local/$JAVA_DIR_NAME/bin/java 2
+  $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/local/$JAVA_DIR_NAME/bin/javac 3
+  $ALTERNATIVES_PATH --install /usr/bin/jar jar /usr/local/$JAVA_DIR_NAME/bin/jar 4
 
   /bin/echo "export JAVA_HOME=/usr/local/"$JAVA_DIR_NAME >> /etc/environment
   /bin/echo "export PATH=$PATH:/usr/local/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
+  
+  if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
+    source /etc/environment
+  fi
 }
 
 ## To do: Have to cater for OpenJDK 8 not being available for Ubuntu 14.04 and less and being available from 14.10 and above.
@@ -120,3 +130,7 @@ install_configure_java
 
 # Open JDK 7 => Debian 7 passed
 # Open JDK 7 => Ubuntu 14 passed
+
+# Oracle JDK 7/8 => Debian 7 passed
+# Oracle JDK 7/8 => Ubuntu 14 passed
+# Oracle JDK 7/8 => Ubuntu 12 passed
