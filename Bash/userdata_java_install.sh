@@ -53,10 +53,10 @@ install_wget() {
 get_oracle_jdk_installer_name() {
   if [ "$JAVA_INSTALL_VERSION" -eq 8 ]; then
     JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-linux-x64.tar.gz"
-	JAVA_PACKAGE="jdk-8u112-linux-x64.tar.gz"
+    JAVA_PACKAGE="jdk-8u112-linux-x64.tar.gz"
   elif [ "$JAVA_INSTALL_VERSION" -eq 7 ]; then
     JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/7u80-b15/jdk-7u80-linux-x64.tar.gz"
-	JAVA_PACKAGE="jdk-7u80-linux-x64.tar.gz"
+    JAVA_PACKAGE="jdk-7u80-linux-x64.tar.gz"
   else
     exit
   fi
