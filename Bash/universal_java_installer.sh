@@ -1,20 +1,33 @@
-#!/bin/bash
-
-####################################################################################################
+##########################################################################################################
 ## Script Name: universal_java_installer.sh
 ## Author:      Sadequl Hussain
-## Copyright:   2016, Sadequl Hussain
-## Purpose:     Installs Java in a 64 bit Linux server as part of userdata provisioning. 
-## Usage:       1. Copy and paste the script in the userdata section of a cloud based Linux server.
+## Copyright:   2016, Sadequl Hussain (Free for anyone to use, comes with no warranty)
+##
+## Purpose:     This script can be used in userdata when provisioning a cloud based Linux server.
+##              It installs Open JDK or Oracle JDK v. 7 or 8 in most popular Linux distos.
+##              It can be used in an existing Linux server as well, however in such case it does not
+##              check for existing Java installations. The script also creates the $JAVA_HOME 
+##              environment variable and update the $PATH variable.
+##
+## Usage:       1. Copy and paste the script in the userdata section when provisioning a Linux server.
 ##              2. Change the Java distribution (Oracle or Open) and the version (7,8,...)
-## Tested on:   Debian 7, 8, Ubuntu 12, 14, 16, RHEL 7, CentOS 6, 7 servers in AWS, DigitalOcean
-####################################################################################################
+##
+## Tested on:   Cloud Platform: 
+##                   AWS, DigitalOcean
+##              Linux distros and editions (for both 32 bit and 64 bit):
+##                  Debian 7, 8
+##                  Ubuntu 12.04, 14.04, 14.10, 16.10, 
+##                  RHEL 7.2, 6.8
+##                  CentOS 7.2, 6.8 
+##                  Fedora 23, 24 (x64 bit)
+##                  Amazon Linux 2016.11
+##                  SuSE Enterprise
+##########################################################################################################
 
-JAVA_VERSION=7    # Change this to a lower version (say 7.0) when necessary
-JAVA_DISTRO=Open  # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
+#!/bin/bash
 
-LINUX_DISTRO=""
-INSTALL_COMMAND=""
+JAVA_VERSION=8      # Two possible versions: 7 or 8 (this will change later with JDK 9)
+JAVA_DISTRO=Oracle  # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
 
 check_linux_distro() {
   if /bin/cat /proc/version | /bin/grep Debian; then
@@ -28,8 +41,16 @@ check_linux_distro() {
   fi
 }
 
+check_bit() {
+  if [[ $(/bin/uname -m) = "x86_64" ]]; then
+    BIT_VERSION="64"
+  else
+    BIT_VERSION="32"
+  fi
+}
+
 check_java_distro_version() {
-  # At the time of writing OpenJDK 9 was not available. This will of course change
+  # At the time of writing JDK 9 was not available. This will of course change
   if [ "$JAVA_DISTRO" != "Oracle" ] && [ "$JAVA_DISTRO" != "Open" ]; then
     exit
   fi
@@ -52,31 +73,29 @@ install_wget() {
 
 get_oracle_jdk_installer_name() {
   if [ "$JAVA_VERSION" -eq 8 ]; then
-    JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-linux-x64.tar.gz"
-    JAVA_PACKAGE="jdk-8u112-linux-x64.tar.gz"
+    if [ "$BIT_VERSION" = "64" ]; then
+      JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-linux-x64.tar.gz"
+      JAVA_PACKAGE="jdk-8u112-linux-x64.tar.gz"
+    else
+      JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/8u112-b15/jdk-8u112-linux-i586.tar.gz"
+      JAVA_PACKAGE="jdk-8u112-linux-i586.tar.gz"
+    fi	  
   elif [ "$JAVA_VERSION" -eq 7 ]; then
-    JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/7u80-b15/jdk-7u80-linux-x64.tar.gz"
-    JAVA_PACKAGE="jdk-7u80-linux-x64.tar.gz"
-  else
-    exit
+    if [ "$BIT_VERSION" = "64" ]; then
+      JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/7u79-b15/jdk-7u79-linux-x64.tar.gz"
+      JAVA_PACKAGE="jdk-7u79-linux-x64.tar.gz"
+    else
+      JAVA_INSTALLER_URL="http://download.oracle.com/otn-pub/java/jdk/7u79-b15/jdk-7u79-linux-i586.tar.gz"
+      JAVA_PACKAGE="jdk-7u79-linux-i586.tar.gz"
+    fi
   fi
 }
 
 get_open_jdk_installer_name() {
-  if [ "$JAVA_VERSION" -eq 8 ]; then
-    if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
-      JAVA_PACKAGE_NAME="openjdk-"$JAVA_VERSION"-jdk"
-    elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
-      JAVA_PACKAGE_NAME="java-1."$JAVA_VERSION".0-openjdk-devel"
-    fi
-  elif [ "$JAVA_VERSION" -eq 7 ]; then
-    if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
-      JAVA_PACKAGE_NAME="openjdk-"$JAVA_VERSION"-jdk"
-    elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
-      JAVA_PACKAGE_NAME="java-1."$JAVA_VERSION".0-openjdk-devel"
-    fi
-  else
-    exit
+  if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
+    JAVA_PACKAGE_NAME="openjdk-"$JAVA_VERSION"-jdk"
+  elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
+    JAVA_PACKAGE_NAME="java-1."$JAVA_VERSION".0-openjdk-devel"
   fi
 }
 
@@ -96,16 +115,12 @@ configure_oracle_jdk() {
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     ALTERNATIVES_PATH="/usr/sbin/alternatives"
   fi
-   
   $ALTERNATIVES_PATH --install /usr/bin/java java /usr/local/$JAVA_DIR_NAME/bin/java 2
   $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/local/$JAVA_DIR_NAME/bin/javac 3
   $ALTERNATIVES_PATH --install /usr/bin/jar jar /usr/local/$JAVA_DIR_NAME/bin/jar 4
-
   /bin/echo "export JAVA_HOME=/usr/local/"$JAVA_DIR_NAME >> /etc/environment
   /bin/echo "export PATH=$PATH:/usr/local/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
-  
   source /etc/environment
-
 }
 
 install_open_jdk() {
@@ -120,23 +135,21 @@ install_open_jdk() {
     INSTALL_COMMAND="/usr/bin/yum install -y "$JAVA_PACKAGE_NAME
   fi          
   eval "$INSTALL_COMMAND"
-  JAVA_DIR_NAME=$(/bin/ls /usr/lib/jvm/ | /bin/grep java-$JAVA_VERSION) 
 }
 
 configure_open_jdk() {
   if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
     ALTERNATIVES_PATH="/usr/bin/update-alternatives"
+    JAVA_DIR_NAME=$(/bin/ls /usr/lib/jvm/ | /bin/grep java-$JAVA_VERSION) 
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     ALTERNATIVES_PATH="/usr/sbin/alternatives"
+    JAVA_DIR_NAME=$(/bin/ls /usr/lib/jvm/ | /bin/grep java-1.$JAVA_VERSION.0-openjdk-)
   fi
-   
   $ALTERNATIVES_PATH --install /usr/bin/java java /usr/lib/jvm/$JAVA_DIR_NAME/bin/java 2
   $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/lib/jvm/$JAVA_DIR_NAME/bin/javac 3
   $ALTERNATIVES_PATH --install /usr/bin/jar jar /usr/lib/jvm/$JAVA_DIR_NAME/bin/jar 4
-
   /bin/echo "export JAVA_HOME=/usr/lib/jvm/"$JAVA_DIR_NAME >> /etc/environment
-  /bin/echo "export PATH=$PATH:/usr/lib/jvm/"$JAVA_DIR_NAME"bin/" >> /etc/environment
-
+  /bin/echo "export PATH=$PATH:/usr/lib/jvm/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
   source /etc/environment
 }
 
@@ -151,5 +164,6 @@ install_configure_java() {
 }
 	
 check_linux_distro
+check_bit
 check_java_distro_version
 install_configure_java
