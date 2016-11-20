@@ -4,7 +4,7 @@
 ## Copyright:   2016, Sadequl Hussain (Free for anyone to use, comes with no warranty)
 ##
 ## Purpose:     This script can be used in userdata when provisioning a cloud based Linux server.
-##              It installs Open JDK 7 or Oracle JDK 7 or 8 in most popular Linux distos.
+##              It installs Open JDK 8 or Oracle JDK 7 or 8 in most popular Linux distos.
 ##              It can be used in an existing Linux server as well, however in such case it does not
 ##              check for existing Java installations. The script also creates the $JAVA_HOME 
 ##              environment variable and update the $PATH variable.
@@ -26,7 +26,7 @@
 
 #!/bin/bash
 
-JAVA_VERSION=8      # Two possible versions: 7 or 8 for Oracle JDK. One possible value of 7 for Open JDK
+JAVA_VERSION=8      # Two possible versions: 7 or 8 for Oracle JDK. One possible value of 8 for Open JDK
 JAVA_DISTRO=Open    # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
 
 check_linux_distro() {
