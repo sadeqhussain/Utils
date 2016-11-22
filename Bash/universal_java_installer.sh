@@ -16,17 +16,20 @@
 ##                   AWS, DigitalOcean
 ##              Linux distros and editions (for both 32 bit and 64 bit):
 ##                  Debian 7, 8
-##                  Ubuntu 12.04, 14.04, 14.10, 16.10, 
-##                  RHEL 7.2, 6.8
+##                  Ubuntu 12.04, 14.04, 16.04, 16.10, 
+##                  RHEL 7.3
 ##                  CentOS 7.2, 6.8 
 ##                  Fedora 23, 24 (x64 bit)
-##                  Amazon Linux 2016.11
-##                  SuSE Enterprise
+##                  Amazon Linux 2016.09
+##                  Coming soon: SuSE Enterprise
+##
+## Nuance:      In DigitalOcean, it may take some time for Java to be installed even after the node 
+##              has been provisioned. This is not the case for AWS-hosted nodes. 
 ##########################################################################################################
 
 #!/bin/bash
 
-JAVA_VERSION=8      # Two possible versions: 7 or 8 for Oracle JDK. One possible value of 8 for Open JDK
+JAVA_VERSION=8      # Two possible values: 7 or 8 for Oracle JDK. One possible value: 8 for Open JDK
 JAVA_DISTRO=Open    # Two possible values: "Oracle" for OracleJDK and "Open" for OpenJDK
 
 check_linux_distro() {
@@ -60,7 +63,7 @@ check_java_distro_version() {
     fi
   fi
   if [ "$JAVA_DISTRO" = "Open" ]; then
-    if [ "$JAVA_VERSION" -neq 8 ]; then
+    if [ "$JAVA_VERSION" -ne 8 ]; then
       exit
     fi
   fi
@@ -125,6 +128,9 @@ configure_oracle_jdk() {
   $ALTERNATIVES_PATH --install /usr/bin/java java /usr/local/$JAVA_DIR_NAME/bin/java 2
   $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/local/$JAVA_DIR_NAME/bin/javac 3
   $ALTERNATIVES_PATH --install /usr/bin/jar jar /usr/local/$JAVA_DIR_NAME/bin/jar 4
+  $ALTERNATIVES_PATH --set java /usr/local/$JAVA_DIR_NAME/bin/java
+  $ALTERNATIVES_PATH --set javac /usr/local/$JAVA_DIR_NAME/bin/javac
+  $ALTERNATIVES_PATH --set jar /usr/local/$JAVA_DIR_NAME/bin/jar
   /bin/echo "export JAVA_HOME=/usr/local/"$JAVA_DIR_NAME >> /etc/environment
   /bin/echo "export PATH=$PATH:/usr/local/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
   source /etc/environment
@@ -155,6 +161,9 @@ configure_open_jdk() {
   $ALTERNATIVES_PATH --install /usr/bin/java java /usr/lib/jvm/$JAVA_DIR_NAME/bin/java 2
   $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/lib/jvm/$JAVA_DIR_NAME/bin/javac 3
   $ALTERNATIVES_PATH --install /usr/bin/jar jar /usr/lib/jvm/$JAVA_DIR_NAME/bin/jar 4
+  $ALTERNATIVES_PATH --set java /usr/lib/jvm/$JAVA_DIR_NAME/bin/java
+  $ALTERNATIVES_PATH --set javac /usr/lib/jvm/$JAVA_DIR_NAME/bin/javac
+  $ALTERNATIVES_PATH --set jar /usr/lib/jvm/$JAVA_DIR_NAME/bin/jar  
   /bin/echo "export JAVA_HOME=/usr/lib/jvm/"$JAVA_DIR_NAME >> /etc/environment
   /bin/echo "export PATH=$PATH:/usr/lib/jvm/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
   source /etc/environment
