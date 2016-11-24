@@ -15,16 +15,18 @@
 ## Tested on:   Cloud Platform: 
 ##                   AWS, DigitalOcean
 ##              Linux distros and editions (for both 32 bit and 64 bit):
-##                  Debian 7, 8
+##                  Debian 8.6 (Jessie)
 ##                  Ubuntu 12.04, 14.04, 16.04, 16.10, 
 ##                  RHEL 7.3
 ##                  CentOS 7.2, 6.8 
-##                  Fedora 23, 24 (x64 bit)
-##                  Amazon Linux 2016.09
-##                  Coming soon: SuSE Enterprise
+##                  Fedora 23, 24 (64 bit)
+##                  Amazon Linux 2016.09 (64 bit)
+##                  SuSE Enterprise 12 (64 bit)
 ##
-## Nuance:      In DigitalOcean, it may take some time for Java to be installed even after the node 
-##              has been provisioned. This is not the case for AWS-hosted nodes. 
+## Nuance:      1. In DigitalOcean, it may take some time for Java to be installed even after the node 
+##                 has been provisioned. This is not the case for AWS-hosted nodes.
+##              2. In AWS, the $PATH variable does not reflect the $JAVA_HOME/bin even though
+##                 it sets the $JAVA_HOME. Have to run source /etc/environment after provisioning.           
 ##########################################################################################################
 
 #!/bin/bash
@@ -39,6 +41,8 @@ check_linux_distro() {
     LINUX_DISTRO="Ubuntu"
   elif /bin/cat /proc/version | /bin/grep "Red Hat"; then
     LINUX_DISTRO="Red Hat"
+  elif /bin/cat /proc/version | /bin/grep "SUSE"; then
+    LINUX_DISTRO="SUSE"	
   else
     exit
   fi
@@ -78,6 +82,10 @@ install_wget() {
     if  ! /bin/rpm -qa | grep wget; then
       /usr/bin/yum install -y wget
     fi
+  elif [ "$LINUX_DISTRO" = "SUSE" ]; then
+    if  ! /usr/bin/zypper search | grep wget; then
+      /usr/bin/zypper install -y wget
+    fi	
   fi
 }
 
@@ -106,6 +114,8 @@ get_open_jdk_installer_name() {
     JAVA_PACKAGE_NAME="openjdk-"$JAVA_VERSION"-jdk"
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     JAVA_PACKAGE_NAME="java-1."$JAVA_VERSION".0-openjdk-devel"
+  elif [ "$LINUX_DISTRO" = "SUSE" ]; then
+    JAVA_PACKAGE_NAME="java-1_"$JAVA_VERSION"_0-openjdk-devel"	
   fi
 }
 
@@ -124,6 +134,8 @@ configure_oracle_jdk() {
     ALTERNATIVES_PATH="/usr/bin/update-alternatives"
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     ALTERNATIVES_PATH="/usr/sbin/alternatives"
+  elif [ "$LINUX_DISTRO" = "SUSE" ]; then
+    ALTERNATIVES_PATH="/usr/sbin/update-alternatives"	
   fi
   $ALTERNATIVES_PATH --install /usr/bin/java java /usr/local/$JAVA_DIR_NAME/bin/java 2
   $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/local/$JAVA_DIR_NAME/bin/javac 3
@@ -132,40 +144,60 @@ configure_oracle_jdk() {
   $ALTERNATIVES_PATH --set javac /usr/local/$JAVA_DIR_NAME/bin/javac
   $ALTERNATIVES_PATH --set jar /usr/local/$JAVA_DIR_NAME/bin/jar
   /bin/echo "export JAVA_HOME=/usr/local/"$JAVA_DIR_NAME >> /etc/environment
+  source /etc/environment
   /bin/echo "export PATH=$PATH:/usr/local/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
   source /etc/environment
 }
 
 install_open_jdk() {
   get_open_jdk_installer_name
-  if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
+  if [ "$LINUX_DISTRO" = "Ubuntu" ]; then
     INSTALL_COMMAND="/usr/bin/add-apt-repository ppa:openjdk-r/ppa -y"
     eval "$INSTALL_COMMAND"
     INSTALL_COMMAND="/usr/bin/apt-get update -y"
     eval "$INSTALL_COMMAND"
     INSTALL_COMMAND="/usr/bin/apt-get install -y "$JAVA_PACKAGE_NAME
+  elif [ "$LINUX_DISTRO" = "Debian" ]; then
+    INSTALL_COMMAND="/bin/echo deb http://http.debian.net/debian jessie-backports main >> /etc/apt/sources.list"
+    eval "$INSTALL_COMMAND"
+    INSTALL_COMMAND="/usr/bin/apt-get update -y"
+    eval "$INSTALL_COMMAND"
+    INSTALL_COMMAND="/usr/bin/apt-get install -y "$JAVA_PACKAGE_NAME    
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     INSTALL_COMMAND="/usr/bin/yum install -y "$JAVA_PACKAGE_NAME
-  fi          
+  elif [ "$LINUX_DISTRO" = "SUSE" ]; then
+    INSTALL_COMMAND="/usr/bin/zypper install -y "$JAVA_PACKAGE_NAME
+  fi    
   eval "$INSTALL_COMMAND"
 }
 
 configure_open_jdk() {
   if [ "$LINUX_DISTRO" = "Debian" ] || [ "$LINUX_DISTRO" = "Ubuntu" ]; then
     ALTERNATIVES_PATH="/usr/bin/update-alternatives"
-    JAVA_DIR_NAME=$(/bin/ls /usr/lib/jvm/ | /bin/grep java-$JAVA_VERSION) 
+    INSTALL_DIR=/usr/lib/jvm
+    JAVA_DIR_NAME=$(/bin/ls $INSTALL_DIR | /bin/grep java-$JAVA_VERSION) 
   elif [ "$LINUX_DISTRO" = "Red Hat" ]; then
     ALTERNATIVES_PATH="/usr/sbin/alternatives"
-    JAVA_DIR_NAME=$(/bin/ls /usr/lib/jvm/ | /bin/grep java-1.$JAVA_VERSION.0-openjdk-)
+    INSTALL_DIR=/usr/lib/jvm
+    JAVA_DIR_NAME=$(/bin/ls $INSTALL_DIR | /bin/grep java-1.$JAVA_VERSION.0-openjdk-)
+  elif [ "$LINUX_DISTRO" = "SUSE" ]; then
+    ALTERNATIVES_PATH="/usr/sbin/update-alternatives"
+    if [ "$BIT_VERSION" = "64" ]; then 
+      INSTALL_DIR=/usr/lib64/jvm
+	else
+	  INSTALL_DIR=/usr/lib/jvm
+	fi
+    JAVA_DIR_NAME=$(/bin/ls $INSTALL_DIR | /bin/grep java-1.$JAVA_VERSION.0-openjdk-)	
   fi
-  $ALTERNATIVES_PATH --install /usr/bin/java java /usr/lib/jvm/$JAVA_DIR_NAME/bin/java 2
-  $ALTERNATIVES_PATH --install /usr/bin/javac javac /usr/lib/jvm/$JAVA_DIR_NAME/bin/javac 3
-  $ALTERNATIVES_PATH --install /usr/bin/jar jar /usr/lib/jvm/$JAVA_DIR_NAME/bin/jar 4
-  $ALTERNATIVES_PATH --set java /usr/lib/jvm/$JAVA_DIR_NAME/bin/java
-  $ALTERNATIVES_PATH --set javac /usr/lib/jvm/$JAVA_DIR_NAME/bin/javac
-  $ALTERNATIVES_PATH --set jar /usr/lib/jvm/$JAVA_DIR_NAME/bin/jar  
-  /bin/echo "export JAVA_HOME=/usr/lib/jvm/"$JAVA_DIR_NAME >> /etc/environment
-  /bin/echo "export PATH=$PATH:/usr/lib/jvm/"$JAVA_DIR_NAME"/bin/" >> /etc/environment
+  $ALTERNATIVES_PATH --install /usr/bin/java java $INSTALL_DIR/$JAVA_DIR_NAME/bin/java 2
+  $ALTERNATIVES_PATH --install /usr/bin/javac javac $INSTALL_DIR/$JAVA_DIR_NAME/bin/javac 3
+  $ALTERNATIVES_PATH --install /usr/bin/jar jar $INSTALL_DIR/$JAVA_DIR_NAME/bin/jar 4
+  $ALTERNATIVES_PATH --set java $INSTALL_DIR/$JAVA_DIR_NAME/bin/java
+  $ALTERNATIVES_PATH --set javac $INSTALL_DIR/$JAVA_DIR_NAME/bin/javac
+  $ALTERNATIVES_PATH --set jar $INSTALL_DIR/$JAVA_DIR_NAME/bin/jar  
+  /bin/echo "export JAVA_HOME="$INSTALL_DIR/$JAVA_DIR_NAME >> /etc/environment
+  source /etc/environment
+  /bin/echo "export PATH=$PATH:"$INSTALL_DIR/$JAVA_DIR_NAME"/bin/" >> /etc/environment
   source /etc/environment
 }
 
